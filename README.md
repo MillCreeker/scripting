@@ -6,6 +6,8 @@
 * [Jan Mühlbacher](mailto:jan.muehlbacher@edu.fh-joanneum.at)
 * [Sebastian Toporsch](mailto:sebastian.toporsch@edu.fh-joanneum.at)
 
+## BackUpr
+
 ### Description
 Backupsystem auf Datenbank. Das System verfügt über eine config Datei, in der festgelegt wird welche Dateien/Ordner gesichert werden sollen. Diese Sicherung erfolgt dann in regelmäßigen Abständen (z.B einmal täglich). Gesichert werden die Dateien auf einer Datenbank, die vom Script angesprochen wird.\
 
