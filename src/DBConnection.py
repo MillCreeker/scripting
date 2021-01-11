@@ -33,11 +33,11 @@ class DBConnection:
                             " filename VARCHAR(255) NOT NULL, file LONGBLOB NOT NULL, size INT NOT NULL,"
                             " upload_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                             " is_deleted BOOL NOT NULL DEFAULT 0, backup_id INT,"
-                            " CONSTRAINT FK_backups FOREIGN KEY (backup_id) REFERENCES backups(id))")
+                            " CONSTRAINT FK_backups FOREIGN KEY (backup_id) REFERENCES backups(id) ON DELETE CASCADE)")
 
     def delete_tables(self, commit=False):
-        self.cursor.execute('DROP TABLE backup_files')
-        self.cursor.execute('DROP TABLE backups')
+        self.cursor.execute('DROP TABLE IF EXISTS backup_files')
+        self.cursor.execute('DROP TABLE IF EXISTS backups')
         if commit is True:
             self.connection.commit()
 
@@ -47,6 +47,32 @@ class DBConnection:
         if commit is True:
             self.connection.commit()
         return row_id
+
+    def get_backup(self, backup_id, show_deleted=False):
+        select_query = """SELECT * FROM backups WHERE id = %s"""
+
+        if show_deleted is False:
+            select_query += " AND is_deleted = 0"
+
+        self.cursor.execute(select_query, (backup_id,))
+        return self.cursor.fetchall()
+
+    def get_all_backups(self, show_deleted=False):
+        select_query = """SELECT * FROM backups"""
+        if show_deleted is False:
+            select_query += " WHERE is_deleted = 0"
+
+        self.cursor.execute(select_query)
+        return self.cursor.fetchall()
+
+    def get_backup_size(self, backup_id, with_deleted=False):
+        select_query = """SELECT SUM(size) FROM backup_files WHERE backup_id = %s"""
+
+        if with_deleted is False:
+            select_query += " AND is_deleted = 0"
+
+        self.cursor.execute(select_query, (backup_id,))
+        return (self.cursor.fetchall())[0]
 
     def insert_file(self, filepath: str, backup, commit=False):
         file = open(filepath, 'rb')
@@ -58,6 +84,41 @@ class DBConnection:
         self.cursor.execute(insert_query, blob_tuple)
         if commit is True:
             self.connection.commit()
+
+    def get_file(self, file_id, show_deleted=False):
+        select_query = """SELECT * FROM backup_files WHERE id = %s"""
+
+        if show_deleted is False:
+            select_query += " AND is_deleted = 0"
+
+        self.cursor.execute(select_query, (file_id,))
+        return self.cursor.fetchall()
+
+    def get_all_files(self, show_deleted=False):
+        select_query = """SELECT * FROM backup_files"""
+        if show_deleted is False:
+            select_query += " WHERE is_deleted = 0"
+
+        self.cursor.execute(select_query)
+        return self.cursor.fetchall()
+
+    def get_files_from_backup(self, backup_id, show_deleted=False):
+        select_query = """SELECT * FROM backup_files WHERE backup_id = %s"""
+
+        if show_deleted is False:
+            select_query += " AND is_deleted = 0"
+
+        self.cursor.execute(select_query, (backup_id,))
+        return self.cursor.fetchall()
+
+    def get_file_size(self, file_id, with_deleted=False):
+        select_query = "SELECT size FROM backup_files WHERE id=%s"
+
+        if with_deleted is False:
+            select_query += " AND is_deleted = 0"
+
+        self.cursor.execute(select_query, (file_id,))
+        return (self.cursor.fetchall())[0]
 
     def create_backup_with_files(self, file_list, commit=False):
         backup_id = self.create_backup()
@@ -113,9 +174,19 @@ class DBConnection:
         date_tuple = (date_string,)
         self.cursor.execute(select_query, date_tuple)
         ids = self.cursor.fetchall()
+        if len(ids) == 0:
+            return
         for element in ids:
             self.delete_backup(element[0])
 
         if commit is True:
             self.connection.commit()
 
+    def permanently_clear_deleted_items(self, commit=True):
+        delete_backup_files_query = """DELETE FROM backup_files WHERE is_deleted=1"""
+        delete_backups_query = """DELETE FROM backups WHERE is_deleted=1"""
+        self.cursor.execute(delete_backup_files_query)
+        self.cursor.execute(delete_backups_query)
+
+        if commit is True:
+            self.connection.commit()
