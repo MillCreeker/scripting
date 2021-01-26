@@ -5,41 +5,41 @@ from os import listdir
 from os.path import isfile, join
 
 # get configurations (for cronjob)
-def get_settings():
+def get_config(setting_name, key_name):
     with open(".config", "r") as file:
         text = file.read()
     
-    pattern = re.compile("\"settings\":\s\{\s*([\"\n a-zA-Z0-9.:_-]+)\s*\}")
+    pattern = re.compile("\"" + setting_name + "\":\s*\{\s*([\n \"a-zA-Z0-9.:_-]*)\s*\}")
     settings = pattern.finditer(text)
-    
+
     for e in settings:
         settings = e.group(1).replace("\t", "").replace(" ", "").split("\n")
     
     settings = list(filter(None, settings))
-    
+
     # transform settings into dictionary
     settings_dict = {}
     
     for e in settings:
         # key
-        pattern = re.compile("\"([a-zA-Z0-9._-]+)\"")
+        pattern = re.compile("\"([^.*\"]*)\":")
         key = pattern.finditer(e)
         for i in key:
             key = i.group(1)
         
         # value
-        pattern = re.compile("\:(\d+)")
+        pattern = re.compile("\:\s*\"([^.*\"]*)\"")
         value = pattern.finditer(e)
         for i in value:
             value = i.group(1)
         
         settings_dict.update({key: value})
     
-    return settings_dict
+    return settings_dict[key_name]
 
 
 # get contents (i.e. of "include, "match" & "exclude")
-def get_contents(name, text):
+def __get_contents__(name, text):
     pattern = re.compile("\""+name+"\":\s\{\s*([\n a-zA-Z0-9._-]+)\s*\}")
     contents = pattern.finditer(text)
     
@@ -55,9 +55,9 @@ def get_backup_files_list():
     with open(".config", "r") as file:
         config_text = file.read()
  
-    match   = get_contents("match", config_text)
-    include = get_contents("include", config_text)
-    exclude = get_contents("exclude", config_text)
+    match   = __get_contents__("match", config_text)
+    include = __get_contents__("include", config_text)
+    exclude = __get_contents__("exclude", config_text)
 
     # gets a list of all the files which require a back-up
     files_path = "files"
