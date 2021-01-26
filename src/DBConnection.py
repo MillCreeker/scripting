@@ -95,7 +95,7 @@ class DBConnection:
 
         self.cursor.execute(select_query)
         date = (self.cursor.fetchall())[0]
-        return date
+        return date[0]
 
     # inserts a file into a backup on the database
     def insert_file(self, filepath: str, backup, commit=False):

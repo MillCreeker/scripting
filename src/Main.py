@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 import src.Config as config
 from src.DBConnection import DBConnection
-from src.logger import logger
+import os
+#from src.logger import logger
 
 
 def create_connection():
@@ -12,12 +13,14 @@ def create_connection():
 
     return DBConnection(host, user, password, database)
 
-
-logger = logger.__getattr__()
+os.chdir("..")
+#logger = logger.__getattr__()
 
 connection = create_connection()
 connection.setup()
 
 file_list = config.get_backup_files_list()
+
+date = connection.get_last_backup_date()
 
 connection.create_backup_with_files(file_list, True)
