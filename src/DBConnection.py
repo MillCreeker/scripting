@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import datetime
 import os
 import mysql.connector
@@ -85,6 +86,16 @@ class DBConnection:
 
         self.cursor.execute(select_query, (backup_id,))
         return (self.cursor.fetchall())[0]
+
+    def get_last_backup_date(self, with_deleted=False):
+        select_query = """SELECT MAX(creation_date) FROM backups"""
+
+        if with_deleted is False:
+            select_query += " WHERE is_deleted = 0"
+
+        self.cursor.execute(select_query)
+        date = (self.cursor.fetchall())[0]
+        return date
 
     # inserts a file into a backup on the database
     def insert_file(self, filepath: str, backup, commit=False):
