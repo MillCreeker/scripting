@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import datetime
 import os
 import mysql.connector
@@ -85,6 +86,16 @@ class DBConnection:
 
         self.cursor.execute(select_query, (backup_id,))
         return (self.cursor.fetchall())[0]
+
+    def get_last_backup_date(self, with_deleted=False):
+        select_query = """SELECT MAX(creation_date) FROM backups"""
+
+        if with_deleted is False:
+            select_query += " WHERE is_deleted = 0"
+
+        self.cursor.execute(select_query)
+        date = (self.cursor.fetchall())[0]
+        return date[0]
 
     # inserts a file into a backup on the database
     def insert_file(self, filepath: str, backup, commit=False):
@@ -211,6 +222,18 @@ class DBConnection:
         delete_backups_query = """DELETE FROM backups WHERE is_deleted=1"""
         self.cursor.execute(delete_backup_files_query)
         self.cursor.execute(delete_backups_query)
+
+        if commit is True:
+            self.connection.commit()
+
+    # permanently deletes all database entries that were set to deleted and created before a certain date
+    def permanently_clear_deleted_items_before_date(self, date: datetime, commit=True):
+        date_string = date.strftime('%Y-%m-%d %H:%M:%S')
+        date_tuple = (date_string,)
+        delete_backup_files_query = """DELETE FROM backup_files WHERE is_deleted=1 AND upload_date <= %s"""
+        delete_backups_query = """DELETE FROM backups WHERE is_deleted=1 AND creation_date <= %s"""
+        self.cursor.execute(delete_backup_files_query, date_tuple)
+        self.cursor.execute(delete_backups_query, date_tuple)
 
         if commit is True:
             self.connection.commit()

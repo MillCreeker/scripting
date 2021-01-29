@@ -20,3 +20,7 @@ Die Ergebnisse des Backups werden in einer Logdatei gespeichert (alle Dateien er
 * Access to Database
 * Regex
 * Runnable as cronjob
+
+# Todo
+* read database date out of config
+* read cronjob data out of config and start cronjob through python script
