@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
 import datetime
-import os 
-
-config = open(".config", "r")
-to_backup = config.readlines()
-
+import os
+import subprocess 
 class logger:
-    class __logger:
-        def __init__(self, arg):
-            self.val = arg
-        def __str__(self):
-            return repr(self) + self.val
     instance = None
-    def __init__(self, arg):
-        if not logger.instance:
-            logger.instance = logger.__logger(arg)
+
+    @staticmethod 
+    def getInstance():
+        if logger.instance == None:
+            logger()
+        return logger.instance
+    def init(self):
+        if logger.instance != None:
+            raise Exception("This class is a singleton!")
         else:
-            logger.instance.val = arg
-    def __getattr__(self, name):
-        return getattr(self.instance, name)
+            logger.__instance = self
 
     def log(string):
         if not os.path.exists('logger.txt'):
@@ -34,5 +30,12 @@ class logger:
         f.write("\nERROR\t "+str(datetime.datetime.now())+" " + string + ":");
         f.close();
 
-    log("success")
-    err("error")
+var1="1"
+var2="1"
+var3="1"
+var4="1"
+var5="1"
+
+subprocess.call("cronjob.sh && echo test",shell=True)
+#subprocess.call('bash',1,"cronjob.sh", shell=True)
+#subprocess.Popen(['cronjob.sh %s %s %s %s %s' % (var1, var2, var3, var4, var5)], shell = True)
