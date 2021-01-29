@@ -2,6 +2,7 @@
 import datetime
 import os
 import mysql.connector
+from src.Logger import Logger
 
 
 # Database connection to create, delete and work with backups on the database
@@ -17,6 +18,7 @@ class DBConnection:
             database=database,
         )
         self.cursor = self.connection.cursor()
+        self.logger = Logger.get_instance()
 
     # returns the connection
     def get_connection(self):
@@ -33,6 +35,11 @@ class DBConnection:
 
     # sets up tables needed for backups if they don't already exist
     def setup(self):
+        was_changed = False
+        self.cursor.execute("""SELECT count(*) FROM information_schema.tables
+            WHERE table_name = 'backups' OR table_name = 'backup_files'""")
+        if self.cursor.fetchone()[0] < 2:
+            was_changed = True
         self.cursor.execute("CREATE TABLE IF NOT EXISTS backups (id INT AUTO_INCREMENT PRIMARY KEY, creation_date "
                             "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, is_deleted BOOL NOT NULL DEFAULT 0, "
                             "success BOOL)")
@@ -42,21 +49,43 @@ class DBConnection:
                             " upload_date DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,"
                             " is_deleted BOOL NOT NULL DEFAULT 0, backup_id INT,"
                             " CONSTRAINT FK_backups FOREIGN KEY (backup_id) REFERENCES backups(id) ON DELETE CASCADE)")
+        if was_changed:
+            self.logger.log('created database tables for backup')
 
     # deletes the created tables needed for backups
     def delete_tables(self, commit=False):
-        self.cursor.execute('DROP TABLE IF EXISTS backup_files')
-        self.cursor.execute('DROP TABLE IF EXISTS backups')
-        if commit is True:
-            self.connection.commit()
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            self.cursor.execute('DROP TABLE IF EXISTS backup_files')
+            self.cursor.execute('DROP TABLE IF EXISTS backups')
+            self.logger.log('deleted backup tables in database')
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # creates an empty backup and returns the id
     def create_backup(self, commit=False):
-        self.cursor.execute('INSERT INTO backups (creation_date, is_deleted) VALUES(DEFAULT, DEFAULT)')
-        row_id = self.cursor.lastrowid
-        if commit is True:
-            self.connection.commit()
-        return row_id
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            self.cursor.execute('INSERT INTO backups (creation_date, is_deleted) VALUES(DEFAULT, DEFAULT)')
+            row_id = self.cursor.lastrowid
+            self.logger.log('backup created with id {}'.format(row_id))
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+            return row_id
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # returns a backup with the option to show deleted backups
     def get_backup(self, backup_id, show_deleted=False):
@@ -99,15 +128,25 @@ class DBConnection:
 
     # inserts a file into a backup on the database
     def insert_file(self, filepath: str, backup, commit=False):
-        file = open(filepath, 'rb')
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            file = open(filepath, 'rb')
 
-        insert_query = """ INSERT INTO backup_files (filepath, filename, file, size, backup_id)
-         VALUES (%s, %s, %s, %s, %s)"""
-        blob_tuple = (file.name, os.path.basename(file.name), file.read(), file.__sizeof__(), backup)
+            insert_query = """ INSERT INTO backup_files (filepath, filename, file, size, backup_id)
+             VALUES (%s, %s, %s, %s, %s)"""
+            blob_tuple = (file.name, os.path.basename(file.name), file.read(), file.__sizeof__(), backup)
+            self.cursor.execute(insert_query, blob_tuple)
+            self.logger.log('inserted file "{}" into backup {}'.format(os.path.basename(file.name), backup))
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
 
-        self.cursor.execute(insert_query, blob_tuple)
-        if commit is True:
-            self.connection.commit()
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # returns a file with the option to show deleted files
     def get_file(self, file_id, show_deleted=False):
@@ -150,90 +189,163 @@ class DBConnection:
 
     # takes a list of file paths and creates a backup with all files in the list
     def create_backup_with_files(self, file_list, commit=False):
-        backup_id = self.create_backup()
-        for file in file_list:
-            self.insert_file(file, backup_id)
-        if commit is True:
-            self.connection.commit()
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            backup_id = self.create_backup()
+            for file in file_list:
+                self.insert_file(file, backup_id)
+            self.logger.log('all files backed up')
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # deletes a backup and all associated files
     def delete_backup(self, backup_id, commit=False):
-        delete_backup_query = """UPDATE backups SET is_deleted = 1 WHERE id = %s"""
-        self.cursor.execute(delete_backup_query, (backup_id,))
-        self.delete_files(backup_id=backup_id)
-        if commit is True:
-            self.connection.commit()
-        return
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            self.logger.log('deleting backup with id {}'.format(backup_id))
+            delete_backup_query = """UPDATE backups SET is_deleted = 1 WHERE id = %s"""
+            self.delete_files(backup_id=backup_id)
+            self.cursor.execute(delete_backup_query, (backup_id,))
+            self.logger.log('deleted backup with id {}'.format(backup_id))
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # deletes files from the database with different options to target files. All options stack together with an AND
     # relation
     def delete_files(self, file_id=None, backup_id=None, path=None, filename=None, commit=False):
-        delete_file_query = """UPDATE backup_files SET is_deleted = 1 WHERE 1 = 1"""
-        delete_tuple = ()
-        if file_id is not None:
-            delete_file_query += " AND id = %s"
-            delete_tuple = delete_tuple + (file_id,)
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            delete_file_query = """UPDATE backup_files SET is_deleted = 1 WHERE 1 = 1"""
+            delete_tuple = ()
+            if file_id is not None:
+                delete_file_query += " AND id = %s"
+                delete_tuple = delete_tuple + (file_id,)
 
-        if backup_id is not None:
-            delete_file_query += " AND backup_id = %s"
-            delete_tuple = delete_tuple + (backup_id,)
+            if backup_id is not None:
+                delete_file_query += " AND backup_id = %s"
+                delete_tuple = delete_tuple + (backup_id,)
 
-        if path is not None:
-            delete_file_query += " AND filepath LIKE %s"
-            delete_tuple = delete_tuple + (path,)
+            if path is not None:
+                delete_file_query += " AND filepath LIKE %s"
+                delete_tuple = delete_tuple + (path,)
 
-        if filename is not None:
-            delete_file_query += " AND filename LIKE %s"
-            delete_tuple = delete_tuple + (filename,)
+            if filename is not None:
+                delete_file_query += " AND filename LIKE %s"
+                delete_tuple = delete_tuple + (filename,)
 
-        self.cursor.execute(delete_file_query, delete_tuple)
-
-        if commit is True:
-            self.connection.commit()
+            self.cursor.execute(delete_file_query, delete_tuple)
+            self.logger.log('deleted {} files'.format(self.cursor.rowcount))
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # deletes all files that were uploaded before a certain date
     def delete_files_before_date(self, date: datetime, commit=False):
-        date_string = date.strftime('%Y-%m-%d %H:%M:%S')
-        delete_query = """UPDATE backup_files SET is_deleted = 1 WHERE upload_date <= %s"""
-        date_tuple = (date_string,)
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            date_string = date.strftime('%Y-%m-%d %H:%M:%S')
+            delete_query = """UPDATE backup_files SET is_deleted = 1 WHERE upload_date <= %s"""
+            date_tuple = (date_string,)
 
-        self.cursor.execute(delete_query, date_tuple)
-        if commit is True:
-            self.connection.commit()
+            self.cursor.execute(delete_query, date_tuple)
+            self.logger.log('deleted {} files that were created before {}'.format(self.cursor.rowcount, date))
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # deletes all backups that were created before a certain date
     def delete_backups_before_date(self, date: datetime, commit=False):
-        date_string = date.strftime('%Y-%m-%d %H:%M:%S')
-        select_query = """SELECT id FROM backups WHERE creation_date <= %s"""
-        date_tuple = (date_string,)
-        self.cursor.execute(select_query, date_tuple)
-        ids = self.cursor.fetchall()
-        if len(ids) == 0:
-            return
-        for element in ids:
-            self.delete_backup(element[0])
-
-        if commit is True:
-            self.connection.commit()
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            date_string = date.strftime('%Y-%m-%d %H:%M:%S')
+            select_query = """SELECT id FROM backups WHERE creation_date <= %s"""
+            date_tuple = (date_string,)
+            self.cursor.execute(select_query, date_tuple)
+            ids = self.cursor.fetchall()
+            self.logger.log('deleting {} backups before {}'.format(len(ids), date))
+            no_backups_before_date = False
+            if len(ids) == 0:
+                no_backups_before_date = True
+            if no_backups_before_date is False:
+                for element in ids:
+                    self.delete_backup(element[0])
+            self.logger.log('deleted all backups before {}'.format(date))
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # permanently deletes all database entries that were set to deleted
     def permanently_clear_deleted_items(self, commit=True):
-        delete_backup_files_query = """DELETE FROM backup_files WHERE is_deleted=1"""
-        delete_backups_query = """DELETE FROM backups WHERE is_deleted=1"""
-        self.cursor.execute(delete_backup_files_query)
-        self.cursor.execute(delete_backups_query)
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            delete_backup_files_query = """DELETE FROM backup_files WHERE is_deleted=1"""
+            delete_backups_query = """DELETE FROM backups WHERE is_deleted=1"""
+            self.cursor.execute(delete_backup_files_query)
+            self.logger.log('permanently cleared {} files'.format(self.cursor.rowcount))
+            self.cursor.execute(delete_backups_query)
+            self.logger.log('permanently cleared {} backups'.format(self.cursor.rowcount))
 
-        if commit is True:
-            self.connection.commit()
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
 
     # permanently deletes all database entries that were set to deleted and created before a certain date
     def permanently_clear_deleted_items_before_date(self, date: datetime, commit=True):
-        date_string = date.strftime('%Y-%m-%d %H:%M:%S')
-        date_tuple = (date_string,)
-        delete_backup_files_query = """DELETE FROM backup_files WHERE is_deleted=1 AND upload_date <= %s"""
-        delete_backups_query = """DELETE FROM backups WHERE is_deleted=1 AND creation_date <= %s"""
-        self.cursor.execute(delete_backup_files_query, date_tuple)
-        self.cursor.execute(delete_backups_query, date_tuple)
+        if commit:
+            self.logger.log('transaction started')
+        try:
+            date_string = date.strftime('%Y-%m-%d %H:%M:%S')
+            date_tuple = (date_string,)
+            delete_backup_files_query = """DELETE FROM backup_files WHERE is_deleted=1 AND upload_date <= %s"""
+            delete_backups_query = """DELETE FROM backups WHERE is_deleted=1 AND creation_date <= %s"""
+            self.cursor.execute(delete_backup_files_query, date_tuple)
+            self.logger.log('permanently cleared {} files before {}'.format(self.cursor.rowcount, date))
+            self.cursor.execute(delete_backups_query, date_tuple)
+            self.logger.log('permanently cleared {} backups before {}'.format(self.cursor.rowcount, date))
 
-        if commit is True:
-            self.connection.commit()
+            if commit is True:
+                self.connection.commit()
+                self.logger.log('transaction finished')
+        except:
+            self.connection.rollback()
+            self.logger.err('transaction failed and rolled back')
+            self.close()
+            exit(2)
