@@ -5,19 +5,19 @@ import subprocess
 
 
 class Logger:
-    instance = None
+    __instance = None
 
     @staticmethod
     def get_instance():
-        if Logger.instance is None:
+        if Logger.__instance is None:
             Logger()
-        return Logger.instance
+        return Logger.__instance
 
     def __init__(self):
-        if Logger.instance is not None:
+        if Logger.__instance is not None:
             raise Exception("This class is a singleton!")
         else:
-            Logger.instance = self
+            Logger.__instance = self
 
     def log(self, string):
         if not os.path.exists('logger.txt'):
