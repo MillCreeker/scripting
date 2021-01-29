@@ -23,12 +23,12 @@ class Logger:
         if not os.path.exists('logger.txt'):
             f = open("logger.txt", "w+")
         f = open("logger.txt", "a")
-        f.write("\nSUCCESS\t " + str(datetime.datetime.now()) + " " + string + ":")
+        f.write("\nSUCCESS\t " + str(datetime.datetime.now()) + ": " + string)
         f.close()
 
     def err(self, string):
         if not os.path.exists('logger.txt'):
             f = open("logger.txt", "w+")
         f = open("logger.txt", "a")
-        f.write("\nERROR\t " + str(datetime.datetime.now()) + " " + string + ":")
+        f.write("\nERROR\t " + str(datetime.datetime.now()) + ": " + string)
         f.close()
