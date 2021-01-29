@@ -9,15 +9,15 @@ class Logger:
 
     @staticmethod
     def get_instance():
-        if Logger.instance == None:
+        if Logger.instance is None:
             Logger()
         return Logger.instance
 
-    def init(self):
-        if Logger.instance != None:
+    def __init__(self):
+        if Logger.instance is not None:
             raise Exception("This class is a singleton!")
         else:
-            Logger.__instance = self
+            Logger.instance = self
 
     def log(self, string):
         if not os.path.exists('logger.txt'):
