@@ -1,31 +1,34 @@
 #!/usr/bin/env python3
 import datetime
 import os
-import subprocess 
-class logger:
+import subprocess
+
+
+class Logger:
     instance = None
 
-    @staticmethod 
-    def getInstance():
-        if logger.instance == None:
-            logger()
-        return logger.instance
+    @staticmethod
+    def get_instance():
+        if Logger.instance == None:
+            Logger()
+        return Logger.instance
+
     def init(self):
-        if logger.instance != None:
+        if Logger.instance != None:
             raise Exception("This class is a singleton!")
         else:
-            logger.__instance = self
+            Logger.__instance = self
 
-    def log(string):
+    def log(self, string):
         if not os.path.exists('logger.txt'):
-            f=open("logger.txt","w+");
-        f=open("logger.txt","a");
-        f.write("\nSUCCESS\t "+str(datetime.datetime.now())+" " + string + ":");
-        f.close();
+            f = open("logger.txt", "w+")
+        f = open("logger.txt", "a")
+        f.write("\nSUCCESS\t " + str(datetime.datetime.now()) + " " + string + ":")
+        f.close()
 
-    def err(string):
+    def err(self, string):
         if not os.path.exists('logger.txt'):
-            f=open("logger.txt","w+");
-        f=open("logger.txt","a");
-        f.write("\nERROR\t "+str(datetime.datetime.now())+" " + string + ":");
-        f.close();
+            f = open("logger.txt", "w+")
+        f = open("logger.txt", "a")
+        f.write("\nERROR\t " + str(datetime.datetime.now()) + " " + string + ":")
+        f.close()
