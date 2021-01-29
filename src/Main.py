@@ -37,3 +37,4 @@ if last_backup_date < (current_date - timedelta(days=backup_frequency)):
 connection.delete_backups_before_date(date=((current_date - timedelta(days=delete_after)).replace(hour=23, minute=59, second=59, microsecond=59)), commit=True)
 connection.permanently_clear_deleted_items_before_date(date=((current_date - timedelta(days=permanent_delete)).replace(hour=23, minute=59, second=59, microsecond=59)), commit=True)
 
+connection.close()
