@@ -3,11 +3,13 @@
 import re
 from os import listdir
 from os.path import isfile, join
+from Logger import Logger
 
+config_file = "./.config"
 
 # get configurations (for cronjob)
 def get_config(setting_name, key_name):
-    with open(".config", "r") as file:
+    with open(config_file, "r") as file:
         text = file.read()
 
     pattern = re.compile("\"" + setting_name + "\":\s*\{\s*([\n \"a-zA-Z0-9.:_-]*)\s*\}")
@@ -17,6 +19,12 @@ def get_config(setting_name, key_name):
         settings = e.group(1).replace("\t", "").replace(" ", "").split("\n")
 
     settings = list(filter(None, settings))
+    
+    # returns False if "settings_name" was not found
+    if settings == []:
+        logger = Logger.get_instance()
+        logger.err("Could not find \"" + setting_name + "\" in file .config")
+        return False
 
     # transform settings into dictionary
     settings_dict = {}
@@ -36,6 +44,12 @@ def get_config(setting_name, key_name):
 
         settings_dict.update({key: value})
 
+    # returns False if "key_name" was not found
+    if settings_dict.__contains__(key_name) == False:
+        logger = Logger.get_instance()
+        logger.err("Could not find \"" + key_name + "\" in object \"" + setting_name + "\" in file .config")
+        return False
+    
     return settings_dict[key_name]
 
 
@@ -53,12 +67,18 @@ def __get_contents__(name, text):
 
 # get a list of all files which require a back-up
 def get_backup_files_list():
-    with open(".config", "r") as file:
+    with open(config_file, "r") as file:
         config_text = file.read()
 
     match = __get_contents__("match", config_text)
     include = __get_contents__("include", config_text)
     exclude = __get_contents__("exclude", config_text)
+    
+    # returns False if no files were found
+    if match == [] and include == []:
+        logger = Logger.get_instance()
+        logger.err("Could not find any files to back-up in file .config\nPlease include the object \"include\" or \"match\" in file .config")
+        return False
 
     # gets a list of all the files which require a back-up
     files_path = "files"
