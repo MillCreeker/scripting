@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 import datetime
 import os
-import subprocess
-
 
 class Logger:
     __instance = None

@@ -3,4 +3,4 @@ import subprocess
 
 # only works on windows for now
 class Stop:
-        subprocess.check_call(['wsl', 'crontab', '-r'])
+        subprocess.call(['wsl', 'crontab','-r'])
