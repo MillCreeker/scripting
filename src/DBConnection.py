@@ -11,14 +11,19 @@ class DBConnection:
 
     # Establishes a connection to a database and sets up a cursor to work with
     def __init__(self, host, user, password, database):
-        self.connection = mysql.connector.connect(
-            host=host,
-            user=user,
-            password=password,
-            database=database,
-        )
-        self.cursor = self.connection.cursor()
         self.logger = Logger.get_instance()
+        try:
+            self.connection = mysql.connector.connect(
+                host=host,
+                user=user,
+                password=password,
+                database=database,
+            )
+            self.cursor = self.connection.cursor()
+            self.logger.log('connection to database established')
+        except:
+            self.logger.err('failed to establish a connection to the database')
+            exit(2)
 
     # returns the connection
     def get_connection(self):
@@ -116,6 +121,7 @@ class DBConnection:
         self.cursor.execute(select_query, (backup_id,))
         return (self.cursor.fetchall())[0]
 
+    # returns the date of the last backup made
     def get_last_backup_date(self, with_deleted=False):
         select_query = """SELECT MAX(creation_date) FROM backups"""
 
