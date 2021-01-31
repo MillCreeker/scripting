@@ -46,8 +46,7 @@ class DBConnection:
         if self.cursor.fetchone()[0] < 2:
             was_changed = True
         self.cursor.execute("CREATE TABLE IF NOT EXISTS backups (id INT AUTO_INCREMENT PRIMARY KEY, creation_date "
-                            "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, is_deleted BOOL NOT NULL DEFAULT 0, "
-                            "success BOOL)")
+                            "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, is_deleted BOOL NOT NULL DEFAULT 0)")
         self.cursor.execute("CREATE TABLE IF NOT EXISTS backup_files (id INT AUTO_INCREMENT PRIMARY KEY,"
                             " filepath VARCHAR(255) NOT NULL,"
                             " filename VARCHAR(255) NOT NULL, file LONGBLOB NOT NULL, size INT NOT NULL,"
