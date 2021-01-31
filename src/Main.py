@@ -35,7 +35,7 @@ def create_connection():
 
     return DBConnection(host, user, password, database)
 
-# os.chdir("..")
+os.chdir("..")
 logger = Logger.get_instance()
 
 connection = create_connection()
@@ -67,7 +67,7 @@ if delete_after < 0:
     exit(1)
 
 permanent_delete = int(config.get_config("settings", "permanent-delete"))
-if permanent_delete is not False and permanent_delete is not True:
+if permanent_delete is False or permanent_delete <0:
     logger.err("Please enter a valid value for \"permanent-delete\"")
     exit(1)
 
