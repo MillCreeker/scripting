@@ -3,7 +3,9 @@
 import re
 from os import listdir
 from os.path import isfile, join
-from Logger import Logger
+import os, sys
+sys.path.insert(0, os.path.abspath(".."))
+from src.Logger import Logger
 
 config_file = "./.config"
 

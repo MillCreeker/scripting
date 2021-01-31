@@ -2,7 +2,7 @@
 import datetime
 import os
 import mysql.connector
-from Logger import Logger
+from src.Logger import Logger
 
 
 # Database connection to create, delete and work with backups on the database

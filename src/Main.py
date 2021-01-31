@@ -2,10 +2,12 @@
 from datetime import datetime
 from datetime import timedelta
 
-import Config as config
-from DBConnection import DBConnection
+import os, sys
+sys.path.insert(0, os.path.abspath(".."))
+import src.Config as config
+from src.DBConnection import DBConnection
 import os
-from Logger import Logger
+from src.Logger import Logger
 
 
 def create_connection():
