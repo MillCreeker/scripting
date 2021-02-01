@@ -1,6 +1,4 @@
-# Repository group 1
-
-## About
+# About
 This is collection of scripts that have the purpose of serving as a backusystem for important files that need regular backups. It can be used by anyone that has python and a bash command line be it native on linux or a windows subsytem (wsl, Ubuntu etc.)
 
 ### Authors/Contributors
@@ -8,9 +6,9 @@ This is collection of scripts that have the purpose of serving as a backusystem 
 * [Jan Mühlbacher](mailto:jan.muehlbacher@edu.fh-joanneum.at)
 * [Sebastian Toporsch](mailto:sebastian.toporsch@edu.fh-joanneum.at)
 
-## BackUpr
+# BackUpr
 
-### Description
+## Description
 Backupsytem to Database. The system has a ".config" File that determines the files that are saved. The backup is done in set intervals. The files are then saved on a database named backUpr, that gets called by the script.
 
 The script checks if the selected file is saved correctly on the database.
@@ -19,7 +17,7 @@ The result of the backup is documented in a log file named log.txt.
 
 In the log.txt successful backups start with SUCCESS and errors start with ERROR followed by the time and a success message/error message.
 
-### Criteria used in the project:
+## Criteria used in the project:
 * Access to Files
 * Access to Database
 * Regex
@@ -54,14 +52,14 @@ The general structure to specify which files shall be included in a given back-u
 
 The tags which can be used are:
 
-### include:
+### _include:_
 Every file within this tag will be included in the back-up.
 
-### match:
+### _match:_
 Every file which includes a specified string within this tag will be included in the back-up. 
 For example a parameter ‘.txt’ would include every text-file without having to specify every such file within the ‘include’-tag.
 
-### exclude (optional):
+### _exclude (optional):_
 Every file specified within this tag will not be included in the back-up. This tag may be used in connection with the ‘match’-tag in order to include every ‘.txt’ file except for the ‘not_include.txt’ file for example.
 Note that at least a ‘include’- or ‘match’-tag needs to be present and that the files - which are ought to be backed-up - need to be within the ‘files’ folder!
 
@@ -74,7 +72,7 @@ Every other kind of tag serves the adjustment of a certain specification for the
 ```
 The tags and variables within are:
 
-### settings:
+### _settings:_
 Used to specify the back-up frequency and time for deletion of backed-up files. 
 Anything beneath the min and beyond the max value will not work therefore not executing the script, because the cronjob will throw an error.
 
@@ -99,7 +97,7 @@ Specifies after how many days backed-up files shall be marked as deleted on the 
 ##### permanent-delete (optional):
 Specifies after how many days the backed-up files shall be permanently deleted from the database.
 
-### database-settings:
+### _database-settings:_
 Configurations to establish a connection with the desired database to store the backed-up files in.
 
 ##### host:
