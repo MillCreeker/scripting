@@ -1,6 +1,8 @@
-# Template Repository
+# Repository group 1
 
 ## About
+
+This is collection of scripts that have the purpose of serving as a backusystem for important files that need regular backups. It can be used by anyone that has python and a bash command line be it native on linux or a windows subsytem (wsl, Ubuntu etc.)
 
 ### Authors/Contributors
 
@@ -12,28 +14,25 @@
 
 ### Description
 
-Backupsystem auf Datenbank. Das System verfügt über eine config Datei, in der festgelegt wird welche Dateien/Ordner gesichert werden sollen. Diese Sicherung erfolgt dann in regelmäßigen Abständen (z.B einmal täglich). Gesichert werden die Dateien auf einer Datenbank, die vom Script angesprochen wird.\
+Backupsytem to Database. The system has a ".config" File that determines the files that are saved. The backup is done in set intervals. The files are then saved on a database named backUpr, that gets called by the script.
 
-Das Script überprüft, ob die ausgewählten Dateien auf der Datenbank korrekt abgespeichert wurden.\
+The script checks if the selected file is saved correctly on the database.
 
-Die Ergebnisse des Backups werden in einer Logdatei gespeichert (alle Dateien erfolgreich gesichert, Prozessdetails).
+The result of the backup is documented in a log file named log.txt.
 
-### Abgearbeitete Punkte:
+In the log.txt successful backups start with SUCCESS and errors start with ERROR followed by the time and a success message/error message.
+
+### Criteria used in the project:
 
 * Access to Files
 * Access to Database
 * Regex
 * Runnable as cronjob
 
-# Todo
+# Starting the project
 
-* read database date out of config
-* read cronjob data out of config and start cronjob through python script
-
-# Starting the Project
-
-* Input "sudo service cron start" to start cron/crontab if it's not already running
-* run start.py to initiate cronjob
+* start your cron if it is not already running by running "sudo service cron start"
+* run "python start.py"
 
 # Stopping the Project
 
